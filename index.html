@@ -1,0 +1,1748 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Méta‑recherche</title>
+
+  <!-- ── PWA / Écran d'accueil iOS ── -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Torrents" />
+  <meta name="theme-color" content="#0d1117" />
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:     #0d1117;
+      --bg2:    #111827;
+      --bg3:    #1f2937;
+      --bg4:    #020617;
+      --bd:     #1f2937;
+      --bd2:    #374151;
+      --tx:     #e5e7eb;
+      --tx2:    #9ca3af;
+      --tx3:    #6b7280;
+      --acc:    #fbbf24;
+      --blue:   #2563eb;
+      --blue2:  #1d4ed8;
+      --green:  #34d399;
+      --red:    #ef4444;
+      --orange: #d97706;
+      --r:      8px;
+      --safe-b: env(safe-area-inset-bottom, 0px);
+      --safe-t: env(safe-area-inset-top, 0px);
+    }
+
+    html { -webkit-text-size-adjust: 100%; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--tx);
+      padding: 12px 12px calc(32px + var(--safe-b));
+      min-height: 100dvh;
+      /* Empêche le rebond Safari de montrer du blanc */
+      overscroll-behavior: none;
+    }
+
+    .container { max-width: 1020px; margin: 0 auto; }
+
+    /* ── Bannière "Ouvrir dans Safari" (visible seulement hors Safari) ── */
+    #safari-banner {
+      display: none;
+      background: #1c1408;
+      border: 1px solid var(--acc);
+      border-radius: var(--r);
+      padding: 14px 16px;
+      margin-bottom: 14px;
+      font-size: 0.85rem;
+      line-height: 1.6;
+      color: #fde68a;
+    }
+    #safari-banner strong { color: var(--acc); }
+    #safari-banner ol { padding-left: 18px; margin-top: 6px; }
+    #safari-banner li { margin-bottom: 3px; }
+
+    /* ── Titre ── */
+    h1 {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--acc);
+      letter-spacing: -.02em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+      padding-top: var(--safe-t);
+    }
+
+    /* ── Barre sticky ── */
+    .search-wrap {
+      position: -webkit-sticky;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: var(--bg);
+      padding-bottom: 8px;
+      padding-top: 4px;
+    }
+    .search-wrap::after {
+      content: '';
+      display: block;
+      height: 8px;
+      background: linear-gradient(var(--bg), transparent);
+      pointer-events: none;
+    }
+
+    .search-row {
+      display: flex;
+      gap: 6px;
+      align-items: stretch;
+    }
+
+    .input-wrap { position: relative; flex: 1; min-width: 0; }
+
+    #query {
+      width: 100%;
+      padding: 13px 44px 13px 13px;
+      border-radius: var(--r);
+      border: 1.5px solid var(--bd2);
+      background: var(--bg4);
+      color: var(--tx);
+      font-size: 16px; /* OBLIGATOIRE iOS — évite zoom auto */
+      -webkit-appearance: none;
+      appearance: none;
+    }
+    #query:focus { outline: none; border-color: var(--blue); }
+    #query.shake {
+      border-color: var(--red);
+      animation: shake .3s ease;
+    }
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      25%      { transform: translateX(-5px); }
+      75%      { transform: translateX(5px); }
+    }
+
+    #btn-hist {
+      position: absolute; right: 8px; top: 50%;
+      transform: translateY(-50%);
+      background: none; border: none;
+      font-size: 1rem; line-height: 1;
+      color: var(--tx3); cursor: pointer;
+      padding: 6px; border-radius: 4px;
+      min-width: 34px; min-height: 34px;
+      -webkit-tap-highlight-color: transparent;
+    }
+    #btn-hist.active { color: var(--acc); }
+
+    .btn-search {
+      padding: 13px 18px;
+      border-radius: var(--r);
+      border: none;
+      background: var(--blue);
+      color: #fff;
+      font-weight: 700;
+      font-size: 0.95rem;
+      cursor: pointer;
+      white-space: nowrap;
+      min-height: 48px;
+      -webkit-tap-highlight-color: transparent;
+      transition: background .15s;
+    }
+    .btn-search:active { background: var(--blue2); }
+
+    .btn-sm {
+      padding: 10px 12px;
+      border-radius: var(--r);
+      border: 1.5px solid var(--bd2);
+      background: var(--bg4);
+      color: var(--tx3);
+      font-size: 0.8rem;
+      cursor: pointer;
+      min-height: 48px;
+      white-space: nowrap;
+      -webkit-tap-highlight-color: transparent;
+      transition: background .15s, color .15s;
+    }
+    .btn-sm:active { background: var(--bg2); color: var(--tx); }
+    .btn-sm.copied { color: var(--green); border-color: var(--green); }
+
+    /* ── Dropdown historique ── */
+    #hist-dd {
+      position: absolute;
+      top: calc(100% + 4px); left: 0; right: 0;
+      background: var(--bg2);
+      border: 1.5px solid var(--bd2);
+      border-radius: var(--r);
+      z-index: 300;
+      overflow: hidden;
+      box-shadow: 0 8px 32px #00000070;
+    }
+    .h-item {
+      display: flex; align-items: center;
+      padding: 0 6px 0 14px;
+      min-height: 48px;
+      cursor: pointer;
+      gap: 6px;
+      transition: background .1s;
+    }
+    .h-item:hover, .h-item:active { background: var(--bg3); }
+    .h-item span { flex: 1; font-size: 0.9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .h-del {
+      background: none; border: none;
+      color: var(--tx3); cursor: pointer;
+      font-size: 0.9rem; padding: 10px;
+      min-width: 40px; min-height: 40px;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .h-del:active { color: var(--red); }
+    .h-empty { padding: 14px; font-size: 0.85rem; color: var(--tx3); text-align: center; }
+    .h-foot {
+      border-top: 1px solid var(--bd);
+      padding: 8px 14px;
+      text-align: right;
+    }
+    .h-foot button {
+      background: none; border: none;
+      color: var(--tx3); font-size: 0.75rem;
+      cursor: pointer; padding: 4px 6px;
+    }
+
+    /* ── Warning popup bloqué ── */
+    .warn {
+      display: none;
+      margin-bottom: 8px;
+      padding: 10px 14px;
+      border-radius: var(--r);
+      background: #2d1a00;
+      border: 1px solid #92400e;
+      color: #fcd34d;
+      font-size: 0.8rem;
+      align-items: flex-start;
+      gap: 10px;
+      line-height: 1.5;
+    }
+    .warn.on { display: flex; }
+    .warn span { flex: 1; }
+    .warn button { background: none; border: none; color: #fcd34d; font-size: 1rem; cursor: pointer; padding: 0 4px; min-width: 28px; }
+
+    /* ── Toolbar ── */
+    .toolbar {
+      display: flex; align-items: center;
+      gap: 6px; flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+    .toolbar-lbl { font-size: 0.75rem; color: var(--tx3); }
+
+    /* ── Info row ── */
+    .info-row {
+      display: flex; justify-content: space-between;
+      align-items: center; gap: 8px;
+      margin-bottom: 10px; flex-wrap: wrap;
+    }
+    .presets { display: flex; align-items: center; gap: 5px; overflow-x: auto; -webkit-overflow-scrolling: touch; flex-wrap: nowrap; padding-bottom: 2px; }
+    .presets::-webkit-scrollbar { display: none; }
+    .p-lbl { font-size: 0.75rem; color: var(--tx3); flex-shrink: 0; }
+
+    .pbtn {
+      padding: 7px 13px;
+      border-radius: 9999px;
+      border: 1.5px solid var(--bd2);
+      background: var(--bg2);
+      color: var(--tx2);
+      font-size: 0.78rem;
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+      min-height: 36px;
+      -webkit-tap-highlight-color: transparent;
+      transition: background .15s, color .15s;
+    }
+    .pbtn:active { background: var(--bg3); }
+    .pbtn.on { border-color: var(--acc); color: var(--acc); background: #1c1408; font-weight: 700; }
+
+    .counter { font-size: 0.8rem; color: var(--tx3); white-space: nowrap; flex-shrink: 0; }
+    .counter b { color: var(--tx); }
+
+    /* ── Panneau de résultats (PRIMAIRE sur iOS) ── */
+    #res-panel {
+      display: none;
+      margin-bottom: 12px;
+      background: var(--bg2);
+      border: 1.5px solid var(--bd2);
+      border-radius: var(--r);
+      overflow: hidden;
+    }
+    #res-panel.on { display: block; }
+    .res-head {
+      display: flex; align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--bd);
+      font-size: 0.8rem; color: var(--tx2); gap: 8px;
+    }
+    .res-head em { color: var(--tx); font-style: italic; font-weight: 600; }
+    .res-close {
+      background: none; border: none;
+      color: var(--tx3); cursor: pointer;
+      font-size: 1.1rem; padding: 4px;
+      min-width: 36px; min-height: 36px;
+      border-radius: 4px;
+    }
+    .res-links { display: flex; flex-wrap: wrap; gap: 6px; padding: 12px 14px; }
+    .res-link {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 9px 16px; border-radius: 9999px;
+      background: var(--bg3); color: var(--tx);
+      text-decoration: none; font-size: 0.85rem; font-weight: 500;
+      min-height: 40px;
+      -webkit-tap-highlight-color: transparent;
+      transition: background .15s;
+    }
+    .res-link:active { background: var(--bd2); }
+    .res-link .badge { font-size: 0.58rem; padding: 1px 5px; border-radius: 9999px; background: var(--bd2); color: var(--tx3); }
+
+    /* ── Catégories ── */
+    .cat-head {
+      display: flex; align-items: center;
+      justify-content: space-between; gap: 8px;
+      margin-top: 20px; margin-bottom: 6px;
+    }
+    .cat-title {
+      font-size: 0.75rem; font-weight: 700;
+      color: var(--tx2); text-transform: uppercase; letter-spacing: .06em;
+    }
+    .cat-acts { display: flex; gap: 5px; }
+    .mini-btn {
+      padding: 4px 10px; border-radius: 9999px;
+      border: 1px solid var(--bd2); background: transparent;
+      color: var(--tx3); cursor: pointer; font-size: 0.7rem;
+      min-height: 30px;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .mini-btn:active { background: var(--bg3); color: var(--tx); }
+
+    /* ── Grille sites ── */
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(248px, 1fr)); gap: 5px; }
+
+    @media (max-width: 600px) { .grid { grid-template-columns: 1fr; } }
+
+    .card {
+      background: var(--bg2);
+      border: 1.5px solid var(--bd);
+      border-radius: var(--r);
+      padding: 10px 10px;
+      display: flex; align-items: center; gap: 6px;
+      min-height: 54px;
+      transition: border-color .15s;
+    }
+    .card.checked  { border-color: #2563eb55; }
+    .card.modified { border-color: #d9770655; }
+
+    .card-main { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
+
+    .card label { display: flex; flex-direction: column; flex: 1; min-width: 0; cursor: pointer; }
+    .c-name { font-weight: 600; color: var(--tx); font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .c-url  { font-size: 0.68rem; color: var(--tx3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    .c-badge { font-size: 0.58rem; padding: 1px 5px; border-radius: 9999px; border: 1px solid var(--bd2); color: var(--tx3); white-space: nowrap; flex-shrink: 0; }
+
+    .open-btn {
+      padding: 6px 10px; border-radius: 9999px;
+      border: 1px solid var(--bd2); background: transparent;
+      color: var(--tx3); cursor: pointer; font-size: 0.7rem;
+      white-space: nowrap; flex-shrink: 0; min-height: 32px;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .open-btn:active { background: var(--bg3); color: var(--tx); }
+
+    .edit-btn {
+      padding: 5px; border-radius: 9999px;
+      border: 1px solid transparent; background: transparent;
+      color: var(--tx3); cursor: pointer; font-size: 0.8rem;
+      flex-shrink: 0; min-width: 32px; min-height: 32px;
+      line-height: 1; text-align: center;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .edit-btn:active { background: var(--bg3); }
+    .edit-btn.ov { color: var(--orange); }
+
+    input[type="checkbox"] {
+      accent-color: var(--blue);
+      width: 18px; height: 18px;
+      flex-shrink: 0; cursor: pointer;
+    }
+
+    /* ── Modal d'édition ── */
+    .overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,.6);
+      z-index: 500; align-items: flex-end; justify-content: center;
+      -webkit-backdrop-filter: blur(4px);
+      backdrop-filter: blur(4px);
+    }
+    .overlay.on { display: flex; }
+    @media (min-width: 601px) { .overlay { align-items: center; } }
+
+    .modal {
+      background: var(--bg2);
+      border: 1px solid var(--bd2);
+      border-radius: 18px 18px 0 0;
+      padding: 22px 20px calc(24px + var(--safe-b));
+      width: 100%; max-width: 520px;
+      max-height: 92dvh; overflow-y: auto;
+      animation: up .2s ease;
+    }
+    @media (min-width: 601px) { .modal { border-radius: 12px; padding: 24px; } }
+    @keyframes up { from { transform: translateY(20px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+    .modal-hd { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+    .modal-title { font-weight: 700; font-size: 0.95rem; }
+    .modal-x { background: none; border: none; color: var(--tx3); cursor: pointer; font-size: 1.2rem; padding: 4px; border-radius: var(--r); min-width: 36px; min-height: 36px; }
+
+    .fg { margin-bottom: 14px; }
+    .fl { display: block; font-size: 0.77rem; color: var(--tx2); margin-bottom: 5px; }
+    .fhint { font-size: 0.7rem; color: var(--tx3); margin-top: 4px; line-height: 1.4; }
+    .fhint code { font-family: ui-monospace, monospace; background: var(--bg3); padding: 1px 4px; border-radius: 3px; }
+
+    .finput {
+      width: 100%; padding: 12px 13px;
+      border-radius: var(--r); border: 1.5px solid var(--bd2);
+      background: var(--bg4); color: var(--tx);
+      font-size: 16px; font-family: inherit;
+      -webkit-appearance: none; appearance: none;
+    }
+    .finput:focus { outline: none; border-color: var(--blue); }
+
+    .modal-acts { display: flex; gap: 8px; margin-top: 20px; flex-wrap: wrap; }
+    .btn-pri { flex: 1; padding: 14px; border-radius: var(--r); border: none; background: var(--blue); color: #fff; font-weight: 700; font-size: 0.9rem; cursor: pointer; min-height: 48px; }
+    .btn-pri:active { background: var(--blue2); }
+    .btn-dan { padding: 14px 14px; border-radius: var(--r); border: 1px solid #7f1d1d; background: transparent; color: #f87171; cursor: pointer; font-size: 0.9rem; min-height: 48px; }
+    .btn-dan:active { background: #2d0f0f; }
+    .btn-sec { padding: 14px 14px; border-radius: var(--r); border: 1px solid var(--bd2); background: transparent; color: var(--tx2); cursor: pointer; font-size: 0.9rem; min-height: 48px; }
+
+    /* ── Toast ── */
+    #toast {
+      position: fixed;
+      bottom: calc(24px + var(--safe-b));
+      left: 50%; transform: translateX(-50%);
+      background: var(--bg3); color: var(--tx);
+      padding: 10px 20px; border-radius: var(--r);
+      font-size: 0.85rem; z-index: 1000;
+      box-shadow: 0 4px 20px #00000070;
+      white-space: nowrap; pointer-events: none;
+      opacity: 0; transition: opacity .2s;
+    }
+    #toast.on { opacity: 1; }
+
+    /* ── Footer ── */
+    footer { margin-top: 24px; font-size: 0.7rem; color: var(--bd2); line-height: 1.8; }
+    kbd { display: inline-block; padding: 1px 5px; border-radius: 4px; border: 1px solid var(--bd2); font-size: 0.68rem; color: var(--tx3); background: var(--bg2); }
+    .kbd-hint { display: none; }
+    @media (hover: hover) { .kbd-hint { display: inline; } }
+
+    /* ── Jackett Config Panel ── */
+    .jk-cfg {
+      display: none;
+      background: var(--bg2);
+      border: 1.5px solid var(--bd2);
+      border-radius: var(--r);
+      padding: 14px;
+      margin-bottom: 10px;
+    }
+    .jk-cfg.on { display: block; }
+    .jk-cfg .fg { margin-bottom: 10px; }
+    .jk-status { font-size: 0.78rem; padding: 6px 10px; border-radius: var(--r); margin-top: 8px; }
+    .jk-status.ok { background: #052e16; color: #34d399; border: 1px solid #065f46; }
+    .jk-status.err { background: #2d0f0f; color: #f87171; border: 1px solid #7f1d1d; }
+    #btn-jk.jk-on { color: var(--green); border-color: var(--green); }
+
+    /* ── Jackett Results ── */
+    #jk-results {
+      display: none;
+      margin-bottom: 12px;
+      background: var(--bg2);
+      border: 1.5px solid var(--bd2);
+      border-radius: var(--r);
+      overflow: hidden;
+    }
+    #jk-results.on { display: block; }
+    .jk-head {
+      display: flex; align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--bd);
+      font-size: 0.8rem; color: var(--tx2); gap: 8px;
+    }
+    .jk-head em { color: var(--tx); font-style: italic; font-weight: 600; }
+    .jk-count { font-size: 0.75rem; color: var(--tx3); }
+
+    .jk-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .jk-table {
+      width: 100%; border-collapse: collapse;
+      font-size: 0.8rem; min-width: 640px;
+    }
+    .jk-table th {
+      text-align: left; padding: 8px 10px;
+      background: var(--bg3); color: var(--tx2);
+      font-weight: 600; font-size: 0.72rem;
+      text-transform: uppercase; letter-spacing: .04em;
+      white-space: nowrap; cursor: pointer;
+      -webkit-user-select: none; user-select: none;
+    }
+    .jk-table th:hover { color: var(--tx); }
+    .jk-table th.sorted { color: var(--acc); }
+    .jk-table td {
+      padding: 7px 10px; border-top: 1px solid var(--bd);
+      vertical-align: middle;
+    }
+    .jk-table tr:hover td { background: var(--bg3); }
+
+    .jk-title {
+      max-width: 340px; overflow: hidden;
+      text-overflow: ellipsis; white-space: nowrap;
+      font-weight: 500; color: var(--tx);
+    }
+    .jk-tracker { color: var(--tx2); white-space: nowrap; }
+    .jk-size { white-space: nowrap; color: var(--tx2); }
+    .jk-seeds { color: var(--green); font-weight: 700; }
+    .jk-peers { color: var(--tx3); }
+    .jk-date { color: var(--tx3); white-space: nowrap; font-size: 0.72rem; }
+
+    .jk-acts { display: flex; gap: 4px; }
+    .jk-act {
+      padding: 4px 8px; border-radius: 9999px;
+      border: 1px solid var(--bd2); background: transparent;
+      color: var(--tx3); cursor: pointer; font-size: 0.72rem;
+      white-space: nowrap; min-height: 28px;
+      text-decoration: none; display: inline-flex; align-items: center;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .jk-act:active { background: var(--bg3); color: var(--tx); }
+    .jk-act.magnet { color: var(--green); border-color: #065f46; }
+
+    .jk-loading {
+      display: flex; align-items: center; justify-content: center;
+      padding: 32px; gap: 10px;
+      font-size: 0.85rem; color: var(--tx2);
+    }
+    .jk-spinner {
+      width: 20px; height: 20px;
+      border: 2.5px solid var(--bd2);
+      border-top-color: var(--acc);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .jk-empty {
+      padding: 24px; text-align: center;
+      color: var(--tx3); font-size: 0.85rem;
+    }
+    .jk-errors {
+      padding: 8px 14px; border-top: 1px solid var(--bd);
+      font-size: 0.72rem; color: var(--tx3);
+    }
+    .jk-errors summary { cursor: pointer; color: var(--orange); }
+
+    /* ── Filtres ── */
+    .jk-filters {
+      display: flex; gap: 6px; flex-wrap: wrap;
+      padding: 8px 14px; border-bottom: 1px solid var(--bd);
+    }
+    .jk-fi {
+      background: var(--bg3); border: 1px solid var(--bd2);
+      border-radius: var(--r); color: var(--tx);
+      font-size: 0.78rem; padding: 5px 8px; min-height: 30px;
+    }
+    .jk-fi:focus { outline: none; border-color: var(--acc); }
+    .jk-fi::placeholder { color: var(--tx3); }
+    .jk-fi-q { flex: 1; min-width: 150px; }
+
+    /* ── Pagination ── */
+    .jk-pager {
+      display: flex; align-items: center; justify-content: center;
+      gap: 12px; padding: 10px; border-top: 1px solid var(--bd);
+      font-size: 0.78rem; color: var(--tx2);
+    }
+    .jk-pg-btn {
+      background: var(--bg3); border: 1px solid var(--bd2);
+      border-radius: var(--r); color: var(--tx);
+      padding: 4px 12px; cursor: pointer; font-size: 0.78rem; min-height: 28px;
+    }
+    .jk-pg-btn:hover { border-color: var(--acc); color: var(--acc); }
+
+    /* ── Bouton copie magnet ── */
+    .jk-act.copy { color: var(--tx3); }
+    .jk-act.copy:hover { color: var(--acc); border-color: var(--acc); }
+
+    /* ── Seeds à 0 → rouge ── */
+    .jk-seeds-dead { color: var(--red) !important; }
+
+    /* ── Toggle ON/OFF ── */
+    #btn-jk-on:not(.jk-on) { color: var(--tx3); }
+
+    @media (max-width: 600px) {
+      .jk-table { min-width: 480px; }
+      .jk-title { max-width: 200px; }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Bannière "pas Safari" — affichée uniquement si besoin -->
+  <div id="safari-banner">
+    <strong>⚠️ Cette page n'est pas ouverte dans Safari</strong><br>
+    Pour que tout fonctionne correctement sur iPhone :
+    <ol>
+      <li>Appuie sur le bouton <strong>Partager</strong> (carré ↑) en bas de l'écran</li>
+      <li>Sélectionne <strong>"Ouvrir dans Safari"</strong></li>
+      <li>Puis Partager → <strong>"Sur l'écran d'accueil"</strong> pour créer l'icône</li>
+    </ol>
+  </div>
+
+  <h1>
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
+      <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+    </svg>
+    Méta‑recherche torrents / repacks / IPA
+  </h1>
+
+  <div class="search-wrap">
+    <div class="search-row">
+      <div class="input-wrap">
+        <input id="query" type="search" inputmode="search" autocomplete="off"
+          spellcheck="false" autocorrect="off" autocapitalize="none"
+          placeholder="Film, jeu, app, release…" />
+        <button id="btn-hist" title="Historique">🕐</button>
+        <div id="hist-dd" style="display:none;"></div>
+      </div>
+      <button class="btn-sm" id="btn-copy" onclick="copyQuery()" title="Copier">📋</button>
+      <button class="btn-search" id="btn-search" onclick="launchSearch()">Rechercher</button>
+    </div>
+  </div>
+
+  <div class="warn" id="warn">
+    <span>⚠️ Onglets bloqués par Safari. Utilise les liens bleus du panneau ci-dessous — ils s'ouvrent toujours sur iOS.</span>
+    <button onclick="this.closest('.warn').classList.remove('on')">✕</button>
+  </div>
+
+  <div class="toolbar">
+    <span class="toolbar-lbl">Config :</span>
+    <button class="btn-sm" onclick="doExport()">⬇️ Export</button>
+    <button class="btn-sm" onclick="document.getElementById('imp').click()">⬆️ Import</button>
+    <input id="imp" type="file" accept=".json" style="display:none" onchange="doImport(event)" />
+    <button class="btn-sm" id="btn-jk" onclick="toggleJkCfg()">🔧 Jackett</button>
+    <button class="btn-sm" id="btn-jk-on" onclick="toggleJkEnabled()" style="display:none">⚡ ON</button>
+  </div>
+
+  <!-- Panneau config Jackett (caché par défaut) -->
+  <div class="jk-cfg" id="jk-cfg">
+    <div class="fg">
+      <label class="fl">URL Jackett</label>
+      <input class="finput" id="jk-url" type="url" autocapitalize="none" autocorrect="off" placeholder="http://localhost:9117" />
+      <div class="fhint">Adresse du serveur Jackett (<code>http://localhost:9117</code> ou IP du NAS)</div>
+    </div>
+    <div class="fg">
+      <label class="fl">Clé API</label>
+      <input class="finput" id="jk-key" type="text" autocapitalize="none" autocorrect="off" placeholder="Visible dans Jackett → en haut à droite" />
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="btn-sm" onclick="testJk()">🧪 Tester</button>
+      <button class="btn-sm" onclick="saveJkCfg()">💾 Sauver</button>
+      <button class="btn-sm" onclick="clearJkCfg()">🗑️ Supprimer</button>
+    </div>
+    <div id="jk-status" class="jk-status" style="display:none;"></div>
+  </div>
+
+  <div class="info-row">
+    <div class="presets" id="presets-bar">
+      <span class="p-lbl">Presets :</span>
+    </div>
+    <div class="counter">Sélectionnés : <b id="cnt">0</b></div>
+  </div>
+
+  <!-- Panneau résultats Jackett (indexeur) -->
+  <div id="jk-results">
+    <div class="jk-head">
+      <span>🔍 Résultats Jackett pour <em id="jk-q"></em></span>
+      <span class="jk-count" id="jk-count"></span>
+      <button class="res-close" onclick="closeJkResults()">✕</button>
+    </div>
+    <div class="jk-filters" id="jk-filters" style="display:none">
+      <input class="jk-fi jk-fi-q" id="jk-fi-q" type="text" placeholder="🔍 Filtrer les résultats…" oninput="onJkFilter()">
+      <select class="jk-fi" id="jk-fi-qual" onchange="onJkFilter()">
+        <option value="">Toutes qualités</option>
+        <option value="2160p">4K (2160p)</option>
+        <option value="1080p">1080p</option>
+        <option value="720p">720p</option>
+      </select>
+      <select class="jk-fi" id="jk-fi-seeds" onchange="onJkFilter()">
+        <option value="0">0+ seeds</option>
+        <option value="1">≥ 1 seed</option>
+        <option value="5">≥ 5 seeds</option>
+        <option value="10">≥ 10 seeds</option>
+      </select>
+      <select class="jk-fi" id="jk-fi-size" onchange="onJkFilter()">
+        <option value="0">Toutes tailles</option>
+        <option value="2">≤ 2 Go</option>
+        <option value="10">≤ 10 Go</option>
+        <option value="50">≤ 50 Go</option>
+      </select>
+    </div>
+    <div id="jk-body"></div>
+  </div>
+
+  <!-- Panneau de résultats (liens natifs — iOS-safe) -->
+  <div id="res-panel">
+    <div class="res-head">
+      <span>🔗 Liens pour <em id="res-q"></em></span>
+      <button class="res-close" onclick="document.getElementById('res-panel').classList.remove('on')">✕</button>
+    </div>
+    <div class="res-links" id="res-links"></div>
+  </div>
+
+  <div id="site-list"></div>
+
+  <footer>
+    💾 Sélection &amp; recherche sauvegardées automatiquement.
+    <span class="kbd-hint">&nbsp;— <kbd>Entrée</kbd> lancer · <kbd>Esc</kbd> fermer · <kbd>Ctrl+Shift+C</kbd> copier</span>
+  </footer>
+</div>
+
+<div id="toast"></div>
+
+<!-- Modal édition -->
+<div class="overlay" id="modal-overlay" onclick="onOverlay(event)">
+  <div class="modal">
+    <div class="modal-hd">
+      <div class="modal-title" id="modal-ttl">Modifier le site</div>
+      <button class="modal-x" onclick="closeModal()">✕</button>
+    </div>
+    <div class="fg"><label class="fl">Nom affiché</label><input class="finput" id="e-name" type="text" autocapitalize="words" /></div>
+    <div class="fg"><label class="fl">URL d'accueil</label><input class="finput" id="e-home" type="url" autocapitalize="none" autocorrect="off" /></div>
+    <div class="fg">
+      <label class="fl">URL de recherche</label>
+      <input class="finput" id="e-search" type="text" autocapitalize="none" autocorrect="off" placeholder="https://site.com/search?q={q}" />
+      <div class="fhint">Utilise <code>{q}</code> pour la requête. Laisse vide = ouvre la home.</div>
+    </div>
+    <div class="modal-acts">
+      <button class="btn-pri" onclick="saveEdit()">✅ Enregistrer</button>
+      <button class="btn-dan" id="btn-reset" onclick="resetOverride()">↩️ Réinit.</button>
+      <button class="btn-sec" onclick="closeModal()">Annuler</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ================================================================
+   ▌ CONFIGURATION — seule section à modifier pour gérer les sites
+================================================================ */
+
+const CATEGORIES = [
+  { id: 'dmm',      label: 'Meta / Real-Debrid' },
+  { id: 'trackers', label: 'Trackers / sites torrents FR (films / séries)' },
+  { id: 'jeux',     label: 'Jeux / repacks' },
+  { id: 'ipa',      label: 'IPA / apps iOS' },
+  { id: 'softs',    label: 'Softs / applis' },
+];
+
+// searchTpl : URL avec {q} = requête encodée. null = ouvre la home.
+// Pour AJOUTER un site : copie un bloc, change l'id (unique!), name, cat, home, searchTpl.
+const SITES = [
+  { id:'site-dmm',          name:'Debrid Media Manager',   cat:'dmm',      home:'https://debridmediamanager.com/',               searchTpl: null },
+  { id:'site-torrent9',     name:'Torrent9',               cat:'trackers', home:'https://www5.torrent9.to/',                     searchTpl:'https://www5.torrent9.to/search_torrent/{q}' },
+  { id:'site-torr9',        name:'Torr9',                  cat:'trackers', home:'https://torr9.xyz/',                            searchTpl:'https://torr9.xyz/search?search={q}' },
+  { id:'site-u2p',          name:'U2P / YGG (ygg.gratis)', cat:'trackers', home:'https://ygg.gratis/',                           searchTpl:'https://ygg.gratis/?search={q}' },
+  { id:'site-cinetorrent',  name:'Ciné-Torrent',           cat:'trackers', home:'https://ww2-cine-torrent.com/',                 searchTpl:'https://ww2-cine-torrent.com/recherche/{q}' },
+  { id:'site-cpasbien',     name:'Cpasbien',               cat:'trackers', home:'https://ww2-cpasbien.cc/',                      searchTpl:'https://ww2-cpasbien.cc/recherche/{q}' },
+  { id:'site-la-cale',      name:'La Cale',                cat:'trackers', home:'https://la-cale.space/',                        searchTpl:'https://la-cale.space/?s={q}' },
+  { id:'site-c411',         name:'C411',                   cat:'trackers', home:'https://c411.org/',                             searchTpl:'https://c411.org/torrents?q={q}' },
+  { id:'site-gamestorrents',name:'GamesTorrents',          cat:'jeux',     home:'https://www.gamestorrents.app/',                searchTpl:'https://www.gamestorrents.app/?s={q}' },
+  { id:'site-stg',          name:'STG GEGE',               cat:'jeux',     home:'https://stggege.org/',                          searchTpl: null },
+  { id:'site-fitgirl',      name:'FitGirl Repacks',        cat:'jeux',     home:'https://fitgirl-repacks.site/',                 searchTpl:'https://fitgirl-repacks.site/?s={q}' },
+  { id:'site-dodi',         name:'DODI Repacks',           cat:'jeux',     home:'https://dodi-repacks.site/',                    searchTpl:'https://dodi-repacks.site/?s={q}' },
+  { id:'site-game-repack',  name:'Game-Repack',            cat:'jeux',     home:'https://game-repack.site/',                     searchTpl:'https://game-repack.site/?s={q}' },
+  { id:'site-elamigos',     name:'ElAmigos',               cat:'jeux',     home:'https://elamigos.site/',                        searchTpl:'https://elamigos.site/?s={q}' },
+  { id:'site-skidrow',      name:'SkidrowReloaded',        cat:'jeux',     home:'https://www.skidrowreloaded.com/',              searchTpl:'https://www.skidrowreloaded.com/?s={q}' },
+  { id:'site-appdb',        name:'appdb',                  cat:'ipa',      home:'https://appdb.to/',                             searchTpl: null },
+  { id:'site-decrypt',      name:'Decrypt IPA Store',      cat:'ipa',      home:'https://decrypt.day/',                          searchTpl: null },
+  { id:'site-choco',        name:'Choco Milky IPA',        cat:'ipa',      home:'https://choco-ipa-library-v2.onrender.com/',    searchTpl: null },
+  { id:'site-ipauniverse',  name:'IPA Universe',           cat:'ipa',      home:'https://www.ipauniverse.com/',                  searchTpl: null },
+  { id:'site-ipalibrary',   name:'iPA Library',            cat:'ipa',      home:'https://ipalibrary.me/',                        searchTpl: null },
+  { id:'site-cypwn',        name:'CyPwn IPA Library',      cat:'ipa',      home:'https://ipa.cypwn.xyz/',                        searchTpl: null },
+  { id:'site-iosvizor',     name:'iOSvizor',               cat:'ipa',      home:'https://iosvizor.com/',                         searchTpl: null },
+  { id:'site-filecr',       name:'FileCR (softs)',         cat:'softs',    home:'https://filecr.com/',                           searchTpl:'https://filecr.com/search/{q}/' },
+];
+
+const PRESETS = [
+  { id:'films',   label:'🎬 Films FR',  cats:['trackers'] },
+  { id:'jeux',    label:'🎮 Jeux PC',   cats:['jeux'] },
+  { id:'torrent', label:'⚡ DMM',       cats:['dmm'] },
+  { id:'ipa',     label:'📱 IPA',       cats:['ipa'] },
+  { id:'mix',     label:'🌐 Tout',      cats: null },
+];
+
+/* ================================================================
+   FIN CONFIGURATION
+================================================================ */
+
+// Clés localStorage
+var KS = 'mv4_state';
+var KO = 'mv4_ov';
+var KH = 'mv4_hist';
+var HMAX = 10;
+
+// État
+var overrides    = {};
+var history_     = [];
+var activePreset = null;
+var editingId    = null;
+var histOpen     = false;
+
+/* ── localStorage safe ── */
+function lsGet(k) { try { return localStorage.getItem(k); } catch(e) { return null; } }
+function lsSet(k,v){ try { localStorage.setItem(k,v); } catch(e) {} }
+
+/* ── Escape HTML ── */
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* ── Toast ── */
+var _tt = null;
+function toast(msg) {
+  var t = document.getElementById('toast');
+  if (!t) return;
+  t.textContent = msg;
+  t.classList.add('on');
+  clearTimeout(_tt);
+  _tt = setTimeout(function(){ t.classList.remove('on'); }, 2400);
+}
+
+/* ── Overrides ── */
+function loadOv() {
+  try { overrides = JSON.parse(lsGet(KO) || '{}'); } catch(e) { overrides = {}; }
+}
+function saveOv() { lsSet(KO, JSON.stringify(overrides)); }
+
+function eff(site) {
+  var ov = overrides[site.id];
+  if (!ov) return site;
+  return {
+    id: site.id,
+    name: ov.name !== undefined ? ov.name : site.name,
+    cat:  site.cat,
+    home: ov.home !== undefined ? ov.home : site.home,
+    searchTpl: ov.hasOwnProperty('searchTpl') ? ov.searchTpl : site.searchTpl,
+  };
+}
+
+function resolveUrl(site, enc) {
+  var e = eff(site);
+  return e.searchTpl ? e.searchTpl.replace('{q}', enc) : e.home;
+}
+
+/* ── Historique ── */
+function loadHist() {
+  try { history_ = JSON.parse(lsGet(KH) || '[]'); } catch(e) { history_ = []; }
+}
+function saveHist() { lsSet(KH, JSON.stringify(history_)); }
+
+function addHist(q) {
+  if (!q) return;
+  history_ = history_.filter(function(h){ return h.toLowerCase() !== q.toLowerCase(); });
+  history_.unshift(q);
+  if (history_.length > HMAX) history_.length = HMAX;
+  saveHist();
+  syncHistBtn();
+}
+
+function syncHistBtn() {
+  var b = document.getElementById('btn-hist');
+  if (b) b.classList.toggle('active', history_.length > 0);
+}
+
+function toggleHist() {
+  histOpen = !histOpen;
+  renderHist();
+}
+
+function closeHist() {
+  histOpen = false;
+  var dd = document.getElementById('hist-dd');
+  if (dd) dd.style.display = 'none';
+}
+
+function renderHist() {
+  var dd = document.getElementById('hist-dd');
+  if (!dd) return;
+  if (!histOpen) { dd.style.display = 'none'; return; }
+
+  dd.innerHTML = '';
+  if (!history_.length) {
+    dd.innerHTML = '<div class="h-empty">Aucune recherche récente</div>';
+  } else {
+    history_.forEach(function(h, i) {
+      var row = document.createElement('div');
+      row.className = 'h-item';
+      row.innerHTML = '<span>' + esc(h) + '</span>'
+        + '<button class="h-del" data-i="' + i + '" title="Supprimer">✕</button>';
+      row.addEventListener('click', function(ev) {
+        var del = ev.target.closest('[data-i]');
+        if (del) {
+          history_.splice(+del.dataset.i, 1);
+          saveHist(); syncHistBtn(); renderHist(); return;
+        }
+        var qEl = document.getElementById('query');
+        if (qEl) qEl.value = h;
+        saveState_(); closeHist();
+      });
+      dd.appendChild(row);
+    });
+    var foot = document.createElement('div');
+    foot.className = 'h-foot';
+    foot.innerHTML = '<button onclick="clearHist()">Tout effacer</button>';
+    dd.appendChild(foot);
+  }
+  dd.style.display = 'block';
+}
+
+function clearHist() { history_ = []; saveHist(); syncHistBtn(); closeHist(); }
+
+/* ── Détection Safari vs Quick Look / autre navigateur ── */
+function checkSafari() {
+  var ua = navigator.userAgent || '';
+  // Sur iOS, Safari a "Safari" ET "AppleWebKit" mais PAS "CriOS"/"FxiOS"/"OPiOS"
+  // Quick Look / WKWebView n'ont pas "Safari" dans le UA
+  var isIOS = /iphone|ipad|ipod/i.test(ua);
+  if (!isIOS) return; // sur desktop, tout va bien
+  var isSafari = /^((?!CriOS|FxiOS|OPiOS|EdgiOS).)*Safari/i.test(ua);
+  if (!isSafari) {
+    var banner = document.getElementById('safari-banner');
+    if (banner) banner.style.display = 'block';
+  }
+}
+
+/* ── Rendu HTML depuis config ── */
+function render() {
+  // Presets
+  var bar = document.getElementById('presets-bar');
+  if (bar) {
+    PRESETS.forEach(function(p) {
+      var btn = document.createElement('button');
+      btn.className = 'pbtn';
+      btn.dataset.preset = p.id;
+      btn.textContent = p.label;
+      btn.addEventListener('click', function(){ applyPreset(p.id); });
+      bar.appendChild(btn);
+    });
+  }
+
+  // Sections
+  var listEl = document.getElementById('site-list');
+  if (!listEl) return;
+
+  CATEGORIES.forEach(function(cat) {
+    var sites = SITES.filter(function(s){ return s.cat === cat.id; });
+    if (!sites.length) return;
+
+    var hd = document.createElement('div');
+    hd.className = 'cat-head';
+    hd.innerHTML = '<div class="cat-title">' + esc(cat.label) + '</div>'
+      + '<div class="cat-acts">'
+      + '<button class="mini-btn" data-sec="' + cat.id + '" data-val="true">Tout cocher</button>'
+      + '<button class="mini-btn" data-sec="' + cat.id + '" data-val="false">Tout décocher</button>'
+      + '</div>';
+    listEl.appendChild(hd);
+
+    var grid = document.createElement('div');
+    grid.className = 'grid';
+    grid.dataset.section = cat.id;
+    sites.forEach(function(site){ makeCard(site, grid); });
+    listEl.appendChild(grid);
+  });
+
+  // Délégation d'événements
+  listEl.addEventListener('click', function(ev) {
+    var mb = ev.target.closest('.mini-btn[data-sec]');
+    if (mb) { setSection(mb.dataset.sec, mb.dataset.val === 'true'); return; }
+    var ob = ev.target.closest('.open-btn[data-url]');
+    if (ob) { openTab(ob.dataset.url); return; }
+    var eb = ev.target.closest('.edit-btn[data-id]');
+    if (eb) { openModal(eb.dataset.id); return; }
+  });
+
+  listEl.addEventListener('change', function(ev) {
+    if (ev.target.type !== 'checkbox') return;
+    var card = ev.target.closest('.card');
+    if (card) card.classList.toggle('checked', ev.target.checked);
+    activePreset = null; syncPresets(); saveState_(); updateCnt();
+  });
+}
+
+function makeCard(site, container, before) {
+  var s = eff(site);
+  var hasOv = !!overrides[site.id];
+  var urlShort = s.home.replace(/^https?:\/\//, '').replace(/\/$/, '');
+  var badge = s.searchTpl ? '' : '<span class="c-badge" title="Pas de deep-search — ouvre la home">home</span>';
+
+  var card = document.createElement('div');
+  card.className = 'card' + (hasOv ? ' modified' : '');
+  card.dataset.siteId = site.id;
+  card.innerHTML =
+    '<div class="card-main">'
+    + '<input type="checkbox" id="' + site.id + '" />'
+    + '<label for="' + site.id + '">'
+    + '<span class="c-name">' + esc(s.name) + '</span>'
+    + '<span class="c-url">' + esc(urlShort) + '</span>'
+    + '</label>'
+    + badge
+    + '</div>'
+    + '<button class="open-btn" data-url="' + esc(s.home) + '">Ouvrir</button>'
+    + '<button class="edit-btn ' + (hasOv ? 'ov' : '') + '" data-id="' + site.id + '" title="Modifier URL">⚙️</button>';
+
+  if (before) container.insertBefore(card, before);
+  else container.appendChild(card);
+  return card;
+}
+
+function rerender(siteId) {
+  var site = SITES.find(function(s){ return s.id === siteId; });
+  if (!site) return;
+  var old = document.querySelector('.card[data-site-id="' + siteId + '"]');
+  if (!old) return;
+  var wasChecked = (old.querySelector('input[type="checkbox"]') || {}).checked || false;
+  var parent = old.parentElement;
+  var nxt = old.nextSibling;
+  old.parentNode.removeChild(old);
+  var card = makeCard(site, parent, nxt);
+  var cb = card.querySelector('input[type="checkbox"]');
+  if (cb) { cb.checked = wasChecked; }
+  if (wasChecked) card.classList.add('checked');
+}
+
+/* ── Recherche ── */
+function launchSearch() {
+  var qEl = document.getElementById('query');
+  if (!qEl) return;
+  var q = (qEl.value || '').trim();
+  if (!q) {
+    qEl.classList.add('shake');
+    qEl.focus();
+    setTimeout(function(){ qEl.classList.remove('shake'); }, 600);
+    return;
+  }
+
+  var enc = encodeURIComponent(q);
+  var targets = SITES.filter(function(s){
+    var cb = document.getElementById(s.id);
+    return cb && cb.checked;
+  }).map(function(s){
+    return { site: s, url: resolveUrl(s, enc), e: eff(s) };
+  });
+
+  // Si Jackett désactivé et pas de sites cochés → erreur
+  var jkActive = !!(jkConfig && jkEnabled);
+  if (!jkActive && !targets.length) { toast('Sélectionne au moins un site !'); return; }
+
+  addHist(q);
+  saveState_();
+
+  // Jackett : recherche via API → résultats dans le tableau
+  if (jkActive) {
+    jkSearch(q);
+  }
+
+  // Panneau de liens (fallback / complément)
+  if (targets.length) {
+    showPanel(q, targets);
+
+    // Ouvre les onglets seulement si Jackett n'est PAS actif
+    if (!jkActive) {
+      var blocked = 0;
+      targets.forEach(function(t) {
+        var w = window.open(t.url, '_blank');
+        if (!w || w.closed) blocked++;
+        else { try { w.focus(); } catch(e) {} }
+      });
+      if (blocked > 0) document.getElementById('warn').classList.add('on');
+    }
+  }
+}
+
+/* ── Panneau résultats ── */
+function showPanel(q, targets) {
+  document.getElementById('res-q').textContent = '"' + q + '"';
+  var ll = document.getElementById('res-links');
+  ll.innerHTML = '';
+  targets.forEach(function(t) {
+    var a = document.createElement('a');
+    a.href = t.url;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    a.className = 'res-link';
+    a.innerHTML = esc(t.e.name) + (!t.e.searchTpl ? '<span class="badge">home</span>' : '');
+    ll.appendChild(a);
+  });
+  document.getElementById('res-panel').classList.add('on');
+  var sw = document.querySelector('.search-wrap');
+  if (sw) sw.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+/* ── Ouverture d'onglet simple ── */
+function openTab(url) {
+  var w = window.open(url, '_blank');
+  if (!w || w.closed) document.getElementById('warn').classList.add('on');
+  else { try { w.focus(); } catch(e) {} }
+}
+
+/* ── Sections ── */
+function setSection(id, checked) {
+  var grid = document.querySelector('.grid[data-section="' + id + '"]');
+  if (!grid) return;
+  var cbs = grid.querySelectorAll('input[type="checkbox"]');
+  for (var i = 0; i < cbs.length; i++) {
+    cbs[i].checked = checked;
+    var card = cbs[i].closest('.card');
+    if (card) card.classList.toggle('checked', checked);
+  }
+  saveState_(); updateCnt();
+}
+
+/* ── Presets ── */
+function sitesForCats(cats) {
+  if (!cats) return SITES;
+  return SITES.filter(function(s){ return cats.indexOf(s.cat) !== -1; });
+}
+function allChecked(list) {
+  return list.length > 0 && list.every(function(s){
+    var el = document.getElementById(s.id);
+    return el && el.checked;
+  });
+}
+function applyPreset(pid) {
+  var preset = PRESETS.filter(function(p){ return p.id === pid; })[0];
+  if (!preset) return;
+  var target = sitesForCats(preset.cats);
+  var turnOff = allChecked(target);
+
+  SITES.forEach(function(s) {
+    var el = document.getElementById(s.id);
+    if (!el) return;
+    el.checked = false;
+    var card = el.closest('.card');
+    if (card) card.classList.remove('checked');
+  });
+  if (!turnOff) {
+    target.forEach(function(s) {
+      var el = document.getElementById(s.id);
+      if (!el) return;
+      el.checked = true;
+      var card = el.closest('.card');
+      if (card) card.classList.add('checked');
+    });
+  }
+  activePreset = turnOff ? null : pid;
+  syncPresets(); saveState_(); updateCnt();
+}
+function syncPresets() {
+  var btns = document.querySelectorAll('.pbtn');
+  for (var i = 0; i < btns.length; i++) {
+    btns[i].classList.toggle('on', btns[i].dataset.preset === activePreset);
+  }
+}
+
+/* ── Compteur ── */
+function updateCnt() {
+  var cbs = document.querySelectorAll('#site-list input[type="checkbox"]');
+  var n = 0;
+  for (var i = 0; i < cbs.length; i++) { if (cbs[i].checked) n++; }
+  var el = document.getElementById('cnt');
+  if (el) el.textContent = n;
+}
+
+/* ── Copier ── */
+function copyQuery() {
+  var qEl = document.getElementById('query');
+  var q = (qEl ? qEl.value : '').trim();
+  if (!q) { toast('Rien à copier'); return; }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(q).then(function(){
+      flashCopy();
+    }).catch(function(){ fallbackCopy(q); });
+  } else { fallbackCopy(q); }
+}
+function fallbackCopy(text) {
+  var ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select(); ta.setSelectionRange(0, 9999);
+  try { document.execCommand('copy'); flashCopy(); } catch(e) { toast('Copie non disponible'); }
+  document.body.removeChild(ta);
+}
+function flashCopy() {
+  var btn = document.getElementById('btn-copy');
+  if (!btn) return;
+  var orig = btn.textContent;
+  btn.textContent = '✓'; btn.classList.add('copied');
+  setTimeout(function(){ btn.textContent = orig; btn.classList.remove('copied'); }, 1800);
+}
+
+/* ── Modal édition ── */
+function openModal(siteId) {
+  var site = SITES.filter(function(s){ return s.id === siteId; })[0];
+  if (!site) return;
+  editingId = siteId;
+  var e = eff(site);
+  var ttl = document.getElementById('modal-ttl');
+  if (ttl) ttl.textContent = 'Modifier — ' + e.name;
+  var en = document.getElementById('e-name'), eh = document.getElementById('e-home'), es = document.getElementById('e-search');
+  if (en) en.value = e.name;
+  if (eh) eh.value = e.home;
+  if (es) es.value = e.searchTpl || '';
+  var br = document.getElementById('btn-reset');
+  if (br) br.style.display = overrides[siteId] ? '' : 'none';
+  var ov = document.getElementById('modal-overlay');
+  if (ov) ov.classList.add('on');
+  setTimeout(function(){ var f = document.getElementById('e-name'); if(f) f.focus(); }, 80);
+}
+function closeModal() {
+  var ov = document.getElementById('modal-overlay');
+  if (ov) ov.classList.remove('on');
+  editingId = null;
+}
+function onOverlay(ev) { if (ev.target === ev.currentTarget) closeModal(); }
+function saveEdit() {
+  if (!editingId) return;
+  var site = SITES.filter(function(s){ return s.id === editingId; })[0];
+  if (!site) return;
+  var name = (document.getElementById('e-name').value || '').trim();
+  var home = (document.getElementById('e-home').value || '').trim();
+  var raw  = (document.getElementById('e-search').value || '').trim();
+  var searchTpl = raw || null;
+  var ov = {};
+  if (name && name !== site.name) ov.name = name;
+  if (home && home !== site.home) ov.home = home;
+  if (searchTpl !== site.searchTpl) ov.searchTpl = searchTpl;
+  if (Object.keys(ov).length) overrides[editingId] = Object.assign({}, overrides[editingId] || {}, ov);
+  else delete overrides[editingId];
+  saveOv(); rerender(editingId); closeModal(); toast('✅ Site mis à jour');
+}
+function resetOverride() {
+  if (!editingId) return;
+  delete overrides[editingId];
+  saveOv(); rerender(editingId); closeModal(); toast('↩️ Réinitialisé');
+}
+
+/* ── Export / Import ── */
+function doExport() {
+  var d = new Date().toISOString().slice(0,10);
+  var data = {
+    _version: 4, _date: d,
+    _info: 'Personnalisations Méta-recherche — seul "overrides" est réimporté.',
+    overrides: overrides,
+    sites_effective: SITES.map(function(s){ var e = eff(s); return { id:s.id, name:e.name, cat:s.cat, home:e.home, searchTpl:e.searchTpl }; }),
+  };
+  try {
+    var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    var url  = URL.createObjectURL(blob);
+    var a    = document.createElement('a');
+    a.href = url; a.download = 'meta-search-' + d + '.json'; a.click();
+    URL.revokeObjectURL(url);
+    toast('✅ Config exportée');
+  } catch(e) { toast('❌ Export non disponible dans cet environnement'); }
+}
+function doImport(ev) {
+  var file = ev.target.files[0]; if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      var data = JSON.parse(e.target.result);
+      var imp = data.overrides || {};
+      var count = 0;
+      Object.keys(imp).forEach(function(id) {
+        if (SITES.some(function(s){ return s.id === id; })) { overrides[id] = imp[id]; count++; }
+      });
+      saveOv();
+      SITES.forEach(function(s){ rerender(s.id); });
+      toast('✅ ' + count + ' override(s) importé(s)');
+    } catch(ex) { toast('❌ Fichier JSON invalide'); }
+    ev.target.value = '';
+  };
+  reader.readAsText(file);
+}
+
+/* ── Persistance ── */
+function saveState_() {
+  var qEl = document.getElementById('query');
+  var checks = {};
+  SITES.forEach(function(s){
+    var el = document.getElementById(s.id);
+    checks[s.id] = el ? el.checked : false;
+  });
+  var state = { q: qEl ? qEl.value || '' : '', c: checks, p: activePreset };
+  lsSet(KS, JSON.stringify(state));
+}
+function loadState_() {
+  try {
+    var state = JSON.parse(lsGet(KS) || 'null');
+    if (!state) return;
+    var qEl = document.getElementById('query');
+    if (state.q && qEl) qEl.value = state.q;
+    if (state.c) {
+      Object.keys(state.c).forEach(function(id) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        el.checked = !!state.c[id];
+        var card = el.closest('.card');
+        if (card) card.classList.toggle('checked', !!state.c[id]);
+      });
+    }
+    if (state.p) { activePreset = state.p; syncPresets(); }
+  } catch(e) {}
+}
+
+/* ── Jackett ── */
+var KJ = 'mv4_jk';
+var jkConfig = null;
+var jkResults = [];
+var jkSort    = { key: 'Seeders', dir: -1 };
+var jkEnabled = true;
+var jkMagnets = [];
+var jkFilters = { q: '', minSeeds: 0, quality: '', maxSize: 0 };
+var jkPage    = 0;
+var JK_PER_PAGE = 50;
+var KJS = 'mv4_jk_sort';
+
+function loadJkCfg() {
+  try { jkConfig = JSON.parse(lsGet(KJ) || 'null'); } catch(e) { jkConfig = null; }
+}
+
+function saveJkCfg() {
+  var url = (document.getElementById('jk-url').value || '').trim().replace(/\/+$/, '');
+  var key = (document.getElementById('jk-key').value || '').trim();
+  if (!url || !key) { toast('URL et clé API requises'); return; }
+  jkConfig = { url: url, key: key };
+  lsSet(KJ, JSON.stringify(jkConfig));
+  syncJkBtn();
+  toast('✅ Config Jackett sauvegardée');
+}
+
+function clearJkCfg() {
+  jkConfig = null;
+  try { localStorage.removeItem(KJ); } catch(e) {}
+  var u = document.getElementById('jk-url'); if (u) u.value = '';
+  var k = document.getElementById('jk-key'); if (k) k.value = '';
+  syncJkBtn();
+  toast('🗑️ Config Jackett supprimée');
+}
+
+function toggleJkEnabled() {
+  jkEnabled = !jkEnabled;
+  syncJkBtn();
+  toast(jkEnabled ? '⚡ Jackett activé' : '⏸ Jackett désactivé');
+}
+
+function syncJkBtn() {
+  var btn = document.getElementById('btn-jk');
+  var btnOn = document.getElementById('btn-jk-on');
+  if (btn) btn.classList.toggle('jk-on', !!(jkConfig && jkEnabled));
+  if (btnOn) {
+    btnOn.style.display = jkConfig ? '' : 'none';
+    btnOn.textContent = jkEnabled ? '⚡ ON' : '⏸ OFF';
+    btnOn.classList.toggle('jk-on', !!jkEnabled);
+  }
+}
+
+function toggleJkCfg() {
+  var panel = document.getElementById('jk-cfg');
+  if (!panel) return;
+  var isOpen = panel.classList.contains('on');
+  panel.classList.toggle('on', !isOpen);
+  if (!isOpen && jkConfig) {
+    var u = document.getElementById('jk-url'); if (u) u.value = jkConfig.url || '';
+    var k = document.getElementById('jk-key'); if (k) k.value = jkConfig.key || '';
+  }
+}
+
+function testJk() {
+  var url = (document.getElementById('jk-url').value || '').trim().replace(/\/+$/, '');
+  var key = (document.getElementById('jk-key').value || '').trim();
+  if (!url || !key) { toast('Remplis URL et clé API'); return; }
+
+  var status = document.getElementById('jk-status');
+  status.style.display = 'block';
+  status.className = 'jk-status';
+  status.textContent = 'Test en cours…';
+
+  var xhr = new XMLHttpRequest();
+  xhr.open('GET', url + '/api/v2.0/indexers/all/results?apikey=' + encodeURIComponent(key) + '&Query=test&Limit=1');
+  xhr.timeout = 15000;
+  xhr.onload = function() {
+    if (xhr.status === 200) {
+      try {
+        var data = JSON.parse(xhr.responseText);
+        var indexers = data.Indexers || [];
+        var ok = indexers.filter(function(i) { return !i.Error; }).length;
+        var total = indexers.length;
+        status.className = 'jk-status ok';
+        status.textContent = '✅ Connexion OK — ' + ok + '/' + total + ' indexeur(s) actif(s)';
+      } catch(e) {
+        status.className = 'jk-status ok';
+        status.textContent = '✅ Connexion OK';
+      }
+    } else if (xhr.status === 401) {
+      status.className = 'jk-status err';
+      status.textContent = '❌ Clé API invalide';
+    } else {
+      status.className = 'jk-status err';
+      status.textContent = '❌ Erreur HTTP ' + xhr.status;
+    }
+  };
+  xhr.onerror = function() {
+    status.className = 'jk-status err';
+    status.textContent = '❌ Connexion impossible — vérifie l\'URL et que Jackett tourne';
+  };
+  xhr.ontimeout = function() {
+    status.className = 'jk-status err';
+    status.textContent = '❌ Timeout — Jackett ne répond pas';
+  };
+  xhr.send();
+}
+
+function jkSearch(query) {
+  if (!jkConfig) return;
+
+  var body    = document.getElementById('jk-body');
+  var panel   = document.getElementById('jk-results');
+  var qEl     = document.getElementById('jk-q');
+  var cntEl   = document.getElementById('jk-count');
+  var filters = document.getElementById('jk-filters');
+
+  // Reset filtres + page
+  jkFilters = { q: '', minSeeds: 0, quality: '', maxSize: 0 };
+  jkPage = 0;
+  ['jk-fi-q','jk-fi-qual','jk-fi-seeds','jk-fi-size'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.value = el.tagName === 'SELECT' ? '0' : '';
+    if (el && el.tagName === 'SELECT') el.selectedIndex = 0;
+  });
+  if (filters) filters.style.display = 'none';
+
+  if (qEl) qEl.textContent = '"' + query + '"';
+  if (cntEl) cntEl.textContent = '';
+  body.innerHTML = '<div class="jk-loading"><div class="jk-spinner"></div>Recherche en cours…</div>';
+  panel.classList.add('on');
+  panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  var cat = jkCatFor(activePreset);
+  var apiUrl = jkConfig.url + '/api/v2.0/indexers/all/results'
+    + '?apikey=' + encodeURIComponent(jkConfig.key)
+    + '&Query='  + encodeURIComponent(query)
+    + (cat ? '&Categories=' + cat : '');
+
+  var xhr = new XMLHttpRequest();
+  xhr.open('GET', apiUrl);
+  xhr.timeout = 30000;
+  xhr.onload = function() {
+    if (xhr.status !== 200) {
+      body.innerHTML = '<div class="jk-empty">❌ Erreur Jackett (HTTP ' + xhr.status + ')</div>';
+      return;
+    }
+    try {
+      var data = JSON.parse(xhr.responseText);
+      jkResults = data.Results || [];
+      var indexers = data.Indexers || [];
+
+      if (!jkResults.length) {
+        body.innerHTML = '<div class="jk-empty">Aucun résultat trouvé</div>';
+        if (cntEl) cntEl.textContent = '0 résultat';
+        return;
+      }
+
+      sortJkResults();
+      if (filters) filters.style.display = '';
+      renderJkTable();
+
+      var errors = indexers.filter(function(idx) { return idx.Error; });
+      if (errors.length) {
+        var errHtml = '<details class="jk-errors"><summary>⚠️ ' + errors.length + ' indexeur(s) en erreur</summary><ul>';
+        errors.forEach(function(idx) {
+          errHtml += '<li>' + esc(idx.Name) + ' : ' + esc(idx.Error) + '</li>';
+        });
+        errHtml += '</ul></details>';
+        body.insertAdjacentHTML('beforeend', errHtml);
+      }
+    } catch(e) {
+      body.innerHTML = '<div class="jk-empty">❌ Erreur de parsing : ' + esc(e.message) + '</div>';
+    }
+  };
+  xhr.onerror = function() {
+    body.innerHTML = '<div class="jk-empty">❌ Impossible de contacter Jackett — vérifie que le serveur tourne</div>';
+  };
+  xhr.ontimeout = function() {
+    body.innerHTML = '<div class="jk-empty">❌ Timeout — la recherche a pris trop de temps</div>';
+  };
+  xhr.send();
+}
+
+function sortJkResults() {
+  var key = jkSort.key;
+  var dir = jkSort.dir;
+  jkResults.sort(function(a, b) {
+    var va = a[key], vb = b[key];
+    if (va == null) va = (key === 'Seeders' || key === 'Peers' || key === 'Size') ? 0 : '';
+    if (vb == null) vb = (key === 'Seeders' || key === 'Peers' || key === 'Size') ? 0 : '';
+    if (typeof va === 'string') va = va.toLowerCase();
+    if (typeof vb === 'string') vb = vb.toLowerCase();
+    if (va < vb) return -1 * dir;
+    if (va > vb) return 1 * dir;
+    return 0;
+  });
+}
+
+function onJkSort(key) {
+  if (jkSort.key === key) {
+    jkSort.dir *= -1;
+  } else {
+    jkSort.key = key;
+    jkSort.dir = (key === 'Seeders' || key === 'Peers' || key === 'Size') ? -1 : 1;
+  }
+  lsSet(KJS, JSON.stringify(jkSort));
+  sortJkResults();
+  renderJkTable();
+}
+
+function renderJkTable() {
+  var body = document.getElementById('jk-body');
+  if (!body) return;
+  jkMagnets = [];
+
+  var filtered = filteredJkResults();
+  var total    = filtered.length;
+  var rawTotal = jkResults.length;
+
+  // Mise à jour du compteur
+  var cntEl = document.getElementById('jk-count');
+  if (cntEl) {
+    cntEl.textContent = total === rawTotal
+      ? rawTotal + ' résultat' + (rawTotal > 1 ? 's' : '')
+      : total + '/' + rawTotal + ' résultat' + (rawTotal > 1 ? 's' : '');
+  }
+
+  if (!total) {
+    body.innerHTML = '<div class="jk-empty">Aucun résultat avec ces filtres</div>';
+    return;
+  }
+
+  var start = jkPage * JK_PER_PAGE;
+  if (start >= total) { jkPage = 0; start = 0; }
+  var end  = Math.min(start + JK_PER_PAGE, total);
+  var page = filtered.slice(start, end);
+
+  var arrow = function(key) {
+    if (jkSort.key !== key) return '';
+    return jkSort.dir > 0 ? ' ↑' : ' ↓';
+  };
+  var cls = function(key) {
+    return jkSort.key === key ? ' class="sorted"' : '';
+  };
+
+  var html = '<div class="jk-table-wrap"><table class="jk-table">'
+    + '<thead><tr>'
+    + '<th' + cls('Title')       + ' onclick="onJkSort(\'Title\')">Nom'     + arrow('Title')       + '</th>'
+    + '<th' + cls('Tracker')     + ' onclick="onJkSort(\'Tracker\')">Site'   + arrow('Tracker')     + '</th>'
+    + '<th' + cls('Size')        + ' onclick="onJkSort(\'Size\')">Taille'    + arrow('Size')        + '</th>'
+    + '<th' + cls('Seeders')     + ' onclick="onJkSort(\'Seeders\')">Seeds'  + arrow('Seeders')     + '</th>'
+    + '<th' + cls('Peers')       + ' onclick="onJkSort(\'Peers\')">Peers'    + arrow('Peers')       + '</th>'
+    + '<th' + cls('PublishDate') + ' onclick="onJkSort(\'PublishDate\')">Date' + arrow('PublishDate') + '</th>'
+    + '<th>Actions</th>'
+    + '</tr></thead><tbody>';
+
+  page.forEach(function(r) {
+    var magnet  = r.MagnetUri || '';
+    var link    = r.Link || '';
+    var details = r.Details || '';
+    var seeds   = r.Seeders != null ? r.Seeders : null;
+    var seedsCls = seeds === 0 ? ' class="jk-seeds jk-seeds-dead"' : ' class="jk-seeds"';
+
+    html += '<tr>'
+      + '<td class="jk-title" title="' + esc(r.Title || '') + '">' + esc(r.Title || '—') + '</td>'
+      + '<td class="jk-tracker">' + esc(r.Tracker || '—') + '</td>'
+      + '<td class="jk-size">'    + fmtSize(r.Size || 0)  + '</td>'
+      + '<td' + seedsCls + '>'    + (seeds !== null ? seeds : '—') + '</td>'
+      + '<td class="jk-peers">'   + (r.Peers != null ? r.Peers : '—') + '</td>'
+      + '<td class="jk-date">'    + fmtDate(r.PublishDate) + '</td>'
+      + '<td class="jk-acts">';
+
+    if (magnet) {
+      var mIdx = jkMagnets.length;
+      jkMagnets.push(magnet);
+      html += '<a class="jk-act magnet" href="' + esc(magnet) + '" title="Ouvrir magnet">🧲</a>';
+      html += '<button class="jk-act copy" onclick="copyMagnet(' + mIdx + ')" title="Copier magnet">📋</button>';
+    }
+    if (link)    html += '<a class="jk-act" href="' + esc(link)    + '" target="_blank" rel="noopener" title="Télécharger .torrent">⬇️</a>';
+    if (details) html += '<a class="jk-act" href="' + esc(details) + '" target="_blank" rel="noopener" title="Page du torrent">🔗</a>';
+
+    html += '</td></tr>';
+  });
+
+  html += '</tbody></table></div>';
+
+  // Pagination
+  if (total > JK_PER_PAGE) {
+    var pages = Math.ceil(total / JK_PER_PAGE);
+    html += '<div class="jk-pager">';
+    if (jkPage > 0)
+      html += '<button class="jk-pg-btn" onclick="goJkPage(' + (jkPage - 1) + ')">← Précédent</button>';
+    html += '<span>' + (jkPage + 1) + ' / ' + pages + '</span>';
+    if (jkPage < pages - 1)
+      html += '<button class="jk-pg-btn" onclick="goJkPage(' + (jkPage + 1) + ')">Suivant →</button>';
+    html += '</div>';
+  }
+
+  body.innerHTML = html;
+}
+
+function closeJkResults() {
+  var panel = document.getElementById('jk-results');
+  if (panel) panel.classList.remove('on');
+}
+
+/* ── Catégorie Torznab par preset ── */
+function jkCatFor(presetId) {
+  var map = { films: '2000', jeux: '1000,4000' };
+  return map[presetId] || '';
+}
+
+/* ── Filtrage ── */
+function filteredJkResults() {
+  var minS  = jkFilters.minSeeds;
+  var q     = jkFilters.q.toLowerCase();
+  var qual  = jkFilters.quality.toUpperCase();
+  var maxSz = jkFilters.maxSize;
+  return jkResults.filter(function(r) {
+    if (minS > 0 && (r.Seeders || 0) < minS) return false;
+    if (q && (r.Title || '').toLowerCase().indexOf(q) === -1) return false;
+    if (qual && (r.Title || '').toUpperCase().indexOf(qual) === -1) return false;
+    if (maxSz > 0 && (r.Size || 0) > maxSz) return false;
+    return true;
+  });
+}
+
+function onJkFilter() {
+  var fiQ     = document.getElementById('jk-fi-q');
+  var fiQual  = document.getElementById('jk-fi-qual');
+  var fiSeeds = document.getElementById('jk-fi-seeds');
+  var fiSize  = document.getElementById('jk-fi-size');
+  jkFilters.q        = fiQ     ? fiQ.value : '';
+  jkFilters.quality  = fiQual  ? fiQual.value : '';
+  jkFilters.minSeeds = fiSeeds ? (parseInt(fiSeeds.value) || 0) : 0;
+  jkFilters.maxSize  = fiSize  ? (parseInt(fiSize.value) || 0) * 1073741824 : 0;
+  jkPage = 0;
+  renderJkTable();
+}
+
+/* ── Pagination ── */
+function goJkPage(p) {
+  jkPage = p;
+  renderJkTable();
+  var panel = document.getElementById('jk-results');
+  if (panel) panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+/* ── Copie magnet ── */
+function copyMagnet(idx) {
+  var m = jkMagnets[idx];
+  if (!m) return;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(m).then(
+      function() { toast('📋 Magnet copié !'); },
+      function() { _fallbackCopy(m); }
+    );
+  } else { _fallbackCopy(m); }
+}
+function _fallbackCopy(text) {
+  var t = document.createElement('textarea');
+  t.value = text; t.style.position = 'fixed'; t.style.opacity = '0';
+  document.body.appendChild(t); t.focus(); t.select();
+  try { document.execCommand('copy'); toast('📋 Magnet copié !'); }
+  catch(e) { toast('Impossible de copier'); }
+  document.body.removeChild(t);
+}
+
+/* ── Tri mémorisé ── */
+function loadJkSort() {
+  try { var s = JSON.parse(lsGet(KJS)); if (s && s.key) jkSort = s; } catch(e) {}
+}
+
+function fmtSize(bytes) {
+  if (!bytes || bytes <= 0) return '—';
+  var units = ['o', 'Ko', 'Mo', 'Go', 'To'];
+  var i = 0, size = bytes;
+  while (size >= 1024 && i < units.length - 1) { size /= 1024; i++; }
+  return (i >= 2 ? size.toFixed(1) : Math.round(size)) + ' ' + units[i];
+}
+
+function fmtDate(iso) {
+  if (!iso) return '—';
+  try {
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return '—';
+    var months = ['jan','fév','mar','avr','mai','jun','jul','aoû','sep','oct','nov','déc'];
+    return d.getDate() + ' ' + months[d.getMonth()] + ' ' + d.getFullYear();
+  } catch(e) { return '—'; }
+}
+
+/* ── Init ── */
+document.addEventListener('DOMContentLoaded', function() {
+  try {
+    checkSafari();
+    loadOv();
+    loadHist();
+    loadJkCfg();
+    loadJkSort();
+    render();
+    loadState_();
+    updateCnt();
+    syncHistBtn();
+    syncJkBtn();
+
+    var qEl = document.getElementById('query');
+    if (qEl) {
+      qEl.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter')  { launchSearch(); }
+        if (e.key === 'Escape') { closeHist(); }
+      });
+      qEl.addEventListener('input', saveState_);
+    }
+
+    var bh = document.getElementById('btn-hist');
+    if (bh) bh.addEventListener('click', function(e){ e.stopPropagation(); toggleHist(); });
+
+    document.addEventListener('click', function(e) {
+      if (!e.target.closest('.input-wrap')) closeHist();
+    });
+
+    document.addEventListener('keydown', function(e) {
+      if (e.ctrlKey && e.shiftKey && e.key === 'C') { e.preventDefault(); copyQuery(); }
+      if (e.key === 'Escape') { closeModal(); closeHist(); }
+    });
+  } catch(err) {
+    // Affiche l'erreur directement dans la page pour debug
+    var el = document.createElement('div');
+    el.style.cssText = 'background:#2d0f0f;color:#f87171;padding:12px;border-radius:8px;margin-bottom:12px;font-size:0.85rem;';
+    el.textContent = '⚠️ Erreur JS : ' + (err && err.message ? err.message : String(err));
+    var c = document.querySelector('.container');
+    if (c) c.insertBefore(el, c.firstChild);
+  }
+});
+</script>
+</body>
+</html>
